@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Request Details - Service Request System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h4><i class="bi bi-file-text"></i> Request Details #{{ request.id }}</h4>
+                <a href="{{ url_for('view_requests') }}" class="btn btn-light btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+            <div class="card-body">
+                <!-- Basic Information -->
+                <div class="mb-4">
+                    <h5>Basic Information</h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ request.name or 'Not provided' }}</p>
+                            <p><strong>Location:</strong> {{ request.location }}</p>
+                            <p><strong>Category:</strong> {{ request.category }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                {% if request.status == 'Pending' %}
+                                    <span class="badge bg-warning">Pending</span>
+                                {% elif request.status == 'In-Progress' %}
+                                    <span class="badge bg-info">In-Progress</span>
+                                {% else %}
+                                    <span class="badge bg-success">Completed</span>
+                                {% endif %}
+                            </p>
+                            <p><strong>Date Submitted:</strong> {{ request.created_at.strftime('%Y-%m-%d %H:%M:%S') if request.created_at else 'N/A' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-4">
+                    <h5>Description</h5>
+                    <hr>
+                    <p>{{ request.description }}</p>
+                </div>
+
+                <!-- Photo -->
+                {% if request.photo_path %}
+                <div class="mb-4">
+                    <h5>Uploaded Photo</h5>
+                    <hr>
+                    <img src="{{ url_for('static', filename=request.photo_path) }}" alt="Request Photo" class="img-fluid rounded" style="max-height: 400px;">
+                </div>
+                {% endif %}
+
+                <!-- ML Priority Prediction -->
+                <div class="mb-4">
+                    <h5><i class="bi bi-robot"></i> ML Priority Prediction</h5>
+                    <hr>
+                    <div class="alert 
+                        {% if request.ml_priority == 'High' %}alert-danger
+                        {% elif request.ml_priority == 'Medium' %}alert-warning
+                        {% else %}alert-success
+                        {% endif %}">
+                        <h6>
+                            {% if request.ml_priority == 'High' %}🔴
+                            {% elif request.ml_priority == 'Medium' %}🟡
+                            {% else %}🟢
+                            {% endif %}
+                            Priority Level: <strong>{{ request.ml_priority }}</strong>
+                            {% if request.ml_confidence %}
+                            <span class="badge bg-secondary ms-2">{{ (request.ml_confidence * 100)|round(1) }}% confidence</span>
+                            {% endif %}
+                        </h6>
+                        {% if request.ml_explanation %}
+                        <p class="mb-0"><strong>Explanation:</strong> {{ request.ml_explanation }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- KRR Advisory -->
+                <div class="mb-4">
+                    <h5><i class="bi bi-lightbulb"></i> Rule-Based Advisory</h5>
+                    <hr>
+                    <div class="alert alert-info">
+                        <p class="mb-0"><strong>System Recommendation:</strong> {{ request.krr_advisory }}</p>
+                    </div>
+                </div>
+
+                <!-- Status Update -->
+                <div class="mb-4">
+                    <h5>Update Status</h5>
+                    <hr>
+                    <form id="statusForm">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <select class="form-select" id="statusSelect" name="status">
+                                    <option value="Pending" {% if request.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                    <option value="In-Progress" {% if request.status == 'In-Progress' %}selected{% endif %}>In-Progress</option>
+                                    <option value="Completed" {% if request.status == 'Completed' %}selected{% endif %}>Completed</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-check-circle"></i> Update Status
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('statusForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const status = document.getElementById('statusSelect').value;
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Updating...';
+        
+        try {
+            const response = await fetch('{{ url_for("update_status", request_id=request.id) }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: status })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Error updating status. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error updating status. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Update Status';
+        }
+    });
+</script>
+{% endblock %}
+
+

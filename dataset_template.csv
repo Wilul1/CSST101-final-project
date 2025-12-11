@@ -1,0 +1,21 @@
+category,description,location,priority
+Streetlight issue,Streetlight is broken and area is completely dark very dangerous at night,Main Street,High
+Waste collection,Garbage is overflowing and blocking the road creating health hazard,Park Avenue,High
+Road repair,Large pothole causing accidents immediate repair needed,Highway 1,High
+Water service issue,Water pipe burst flooding the street urgent attention required,Oak Street,High
+Streetlight issue,No lights working dangerous area for pedestrians,Elm Street,High
+Waste collection,Trash overflowing everywhere health emergency,Maple Drive,High
+Road repair,Road needs repair some potholes present,Second Street,Medium
+Streetlight issue,Streetlight flickering needs maintenance,Third Avenue,Medium
+Waste collection,Garbage collection missed this week,Fourth Street,Medium
+Noise complaint,Loud noise from construction site,Fifth Avenue,Medium
+Water service issue,Water pressure is low,Sixth Street,Medium
+Graffiti removal,Graffiti on public wall needs removal,Seventh Avenue,Medium
+Graffiti removal,Small graffiti on wall,Eighth Street,Low
+Noise complaint,Minor noise from neighbor,Ninth Avenue,Low
+Others,General inquiry about services,Tenth Street,Low
+Waste collection,Request for additional bin,Eleventh Avenue,Low
+Road repair,Minor road maintenance needed,Twelfth Street,Low
+
+
+

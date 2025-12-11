@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Request - Service Request System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4><i class="bi bi-plus-circle"></i> Submit a Service Request</h4>
+            </div>
+            <div class="card-body">
+                <form id="requestForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name (Optional)</label>
+                        <input type="text" class="form-control" id="name" name="name" placeholder="Your name">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Location / Barangay / Street <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="location" name="location" required placeholder="e.g., Barangay 123, Main Street">
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Category <span class="text-danger">*</span></label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="">Select a category...</option>
+                            <option value="Waste collection">Waste collection</option>
+                            <option value="Streetlight issue">Streetlight issue</option>
+                            <option value="Road repair">Road repair</option>
+                            <option value="Noise complaint">Noise complaint</option>
+                            <option value="Water service issue">Water service issue</option>
+                            <option value="Graffiti removal">Graffiti removal</option>
+                            <option value="Others">Others</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="4" required placeholder="Please provide detailed information about the issue..."></textarea>
+                        <small class="form-text text-muted">Be specific about the issue. Include keywords like 'urgent', 'dangerous', 'broken', etc. for better priority assessment.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="photo" class="form-label">Upload Photo (Optional)</label>
+                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100">
+                        <i class="bi bi-send"></i> Submit Request
+                    </button>
+                </form>
+
+                <!-- ML Prediction Result -->
+                <div id="predictionResult" class="mt-4" style="display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5><i class="bi bi-robot"></i> ML Priority Prediction</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="priorityBadge" class="mb-3"></div>
+                            <p><strong>Confidence:</strong> <span id="confidence"></span></p>
+                            <p><strong>Explanation:</strong> <span id="explanation"></span></p>
+                            <hr>
+                            <p><strong>KRR Advisory:</strong> <span id="advisory"></span></p>
+                            <div class="mt-3">
+                                <a href="{{ url_for('view_requests') }}" class="btn btn-success me-2">
+                                    <i class="bi bi-eye"></i> View All Requests
+                                </a>
+                                <button type="button" class="btn btn-outline-primary" onclick="location.reload()">
+                                    <i class="bi bi-plus-circle"></i> Submit Another
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('requestForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Processing...';
+        
+        try {
+            const response = await fetch('{{ url_for("submit_request") }}', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show prediction result
+                const resultDiv = document.getElementById('predictionResult');
+                const priority = result.ml_priority;
+                const confidence = (result.ml_confidence * 100).toFixed(1);
+                
+                // Priority badge
+                let badgeClass = 'badge bg-secondary';
+                let priorityIcon = '';
+                if (priority === 'High') {
+                    badgeClass = 'badge bg-danger';
+                    priorityIcon = '🔴';
+                } else if (priority === 'Medium') {
+                    badgeClass = 'badge bg-warning';
+                    priorityIcon = '🟡';
+                } else {
+                    badgeClass = 'badge bg-success';
+                    priorityIcon = '🟢';
+                }
+                
+                document.getElementById('priorityBadge').innerHTML = 
+                    `<span class="${badgeClass} fs-5 p-2">${priorityIcon} ${priority} Priority</span>`;
+                document.getElementById('confidence').textContent = confidence + '%';
+                document.getElementById('explanation').textContent = result.ml_explanation;
+                document.getElementById('advisory').textContent = result.krr_advisory;
+                
+                resultDiv.style.display = 'block';
+                resultDiv.scrollIntoView({ behavior: 'smooth' });
+                
+                // Reset form
+                this.reset();
+            } else {
+                alert('Error submitting request. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error submitting request. Please try again.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-send"></i> Submit Request';
+        }
+    });
+</script>
+{% endblock %}
+
+

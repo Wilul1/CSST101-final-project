@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Panel - Service Request System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4"><i class="bi bi-gear"></i> Admin Panel</h1>
+    </div>
+</div>
+
+<!-- Statistics -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Total Filtered</h5>
+                <h2 class="mb-0">{{ stats.total }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <h5 class="card-title">High Priority</h5>
+                <h2 class="mb-0">{{ stats.high }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <h5 class="card-title">Medium Priority</h5>
+                <h2 class="mb-0">{{ stats.medium }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Low Priority</h5>
+                <h2 class="mb-0">{{ stats.low }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-funnel"></i> Advanced Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin_panel') }}" class="row g-3">
+            <div class="col-md-3">
+                <label for="priority" class="form-label">Priority Filter</label>
+                <select class="form-select" id="priority" name="priority">
+                    <option value="">All Priorities</option>
+                    <option value="High" {% if priority_filter == 'High' %}selected{% endif %}>🔴 High Priority</option>
+                    <option value="Medium" {% if priority_filter == 'Medium' %}selected{% endif %}>🟡 Medium Priority</option>
+                    <option value="Low" {% if priority_filter == 'Low' %}selected{% endif %}>🟢 Low Priority</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="category" class="form-label">Category Filter</label>
+                <select class="form-select" id="category" name="category">
+                    <option value="">All Categories</option>
+                    <option value="Waste collection" {% if category_filter == 'Waste collection' %}selected{% endif %}>Waste collection</option>
+                    <option value="Streetlight issue" {% if category_filter == 'Streetlight issue' %}selected{% endif %}>Streetlight issue</option>
+                    <option value="Road repair" {% if category_filter == 'Road repair' %}selected{% endif %}>Road repair</option>
+                    <option value="Noise complaint" {% if category_filter == 'Noise complaint' %}selected{% endif %}>Noise complaint</option>
+                    <option value="Water service issue" {% if category_filter == 'Water service issue' %}selected{% endif %}>Water service issue</option>
+                    <option value="Graffiti removal" {% if category_filter == 'Graffiti removal' %}selected{% endif %}>Graffiti removal</option>
+                    <option value="Others" {% if category_filter == 'Others' %}selected{% endif %}>Others</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="sort" class="form-label">Sort By</label>
+                <select class="form-select" id="sort" name="sort">
+                    <option value="priority" {% if sort_by == 'priority' %}selected{% endif %}>Priority (High to Low)</option>
+                    <option value="category" {% if sort_by == 'category' %}selected{% endif %}>Category</option>
+                    <option value="location" {% if sort_by == 'location' %}selected{% endif %}>Location</option>
+                    <option value="date" {% if sort_by == 'date' %}selected{% endif %}>Date (Newest)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">&nbsp;</label>
+                <div class="form-check mt-2">
+                    <input class="form-check-input" type="checkbox" id="today" name="today" value="true" {% if today_only %}checked{% endif %}>
+                    <label class="form-check-label" for="today">
+                        Today's Requests Only
+                    </label>
+                </div>
+            </div>
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-funnel"></i> Apply Filters
+                </button>
+                <a href="{{ url_for('admin_panel') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle"></i> Clear Filters
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Requests Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Service Requests ({{ requests|length }} found)</h5>
+        <button class="btn btn-sm btn-outline-primary" onclick="generateReport()">
+            <i class="bi bi-file-earmark-pdf"></i> Generate Report
+        </button>
+    </div>
+    <div class="card-body">
+        {% if requests %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Category</th>
+                        <th>Location</th>
+                        <th>ML Priority</th>
+                        <th>Confidence</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in requests %}
+                    <tr>
+                        <td>{{ req.id }}</td>
+                        <td>{{ req.category }}</td>
+                        <td>{{ req.location }}</td>
+                        <td>
+                            <select class="form-select form-select-sm priority-select" data-request-id="{{ req.id }}" style="width: auto; display: inline-block;">
+                                <option value="High" {% if req.ml_priority == 'High' %}selected{% endif %}>🔴 High</option>
+                                <option value="Medium" {% if req.ml_priority == 'Medium' %}selected{% endif %}>🟡 Medium</option>
+                                <option value="Low" {% if req.ml_priority == 'Low' %}selected{% endif %}>🟢 Low</option>
+                            </select>
+                        </td>
+                        <td>
+                            {% if req.ml_confidence %}
+                            <span class="badge bg-secondary">{{ (req.ml_confidence * 100)|round(1) }}%</span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.status == 'Pending' %}
+                                <span class="badge bg-warning">Pending</span>
+                            {% elif req.status == 'In-Progress' %}
+                                <span class="badge bg-info">In-Progress</span>
+                            {% else %}
+                                <span class="badge bg-success">Completed</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ req.created_at.strftime('%Y-%m-%d %H:%M') if req.created_at else 'N/A' }}</td>
+                        <td>
+                            <a href="{{ url_for('request_details', request_id=req.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> No requests found matching your filters.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Priority override
+    document.querySelectorAll('.priority-select').forEach(select => {
+        const originalValue = select.value;
+        select.addEventListener('change', async function() {
+            if (confirm('Override ML priority? This will update the priority level.')) {
+                const requestId = this.dataset.requestId;
+                const newPriority = this.value;
+                
+                try {
+                    const response = await fetch(`/admin/override_priority/${requestId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ priority: newPriority })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('Priority updated successfully!');
+                        location.reload();
+                    } else {
+                        alert('Error updating priority. Reverting...');
+                        this.value = originalValue;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error updating priority. Reverting...');
+                    this.value = originalValue;
+                }
+            } else {
+                this.value = originalValue;
+            }
+        });
+    });
+
+    function generateReport() {
+        const stats = {
+            total: {{ stats.total }},
+            high: {{ stats.high }},
+            medium: {{ stats.medium }},
+            low: {{ stats.low }}
+        };
+        
+        const reportText = `
+WEEKLY SERVICE REQUEST SUMMARY REPORT
+=====================================
+Generated: ${new Date().toLocaleString()}
+
+Total Requests: ${stats.total}
+- High Priority: ${stats.high}
+- Medium Priority: ${stats.medium}
+- Low Priority: ${stats.low}
+
+Filters Applied:
+- Priority: {{ priority_filter or 'All' }}
+- Category: {{ category_filter or 'All' }}
+- Today Only: {{ 'Yes' if today_only else 'No' }}
+- Sort By: {{ sort_by }}
+        `.trim();
+        
+        // Create and download report
+        const blob = new Blob([reportText], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `service_request_report_${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+</script>
+{% endblock %}
+
+
